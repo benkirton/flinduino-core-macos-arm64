@@ -1,0 +1,22 @@
+# Downloaded by tools/setup-toolchain.sh (~270 MB). Reproducible, never committed.
+/toolchain
+
+# Built by tools/build-pic32prog.sh. Binaries belong in GitHub Releases,
+# not in the tree.
+/prebuilt
+
+# Staged by tools/make-release.sh for upload. The generated package index at the
+# repo root IS committed - its raw URL is what students paste into the IDE.
+/release
+
+# Written by 'bin/flinduino doctor'. Absolute paths for one machine.
+/pic32/platform.local.txt
+
+# Sketch build output
+/examples/*/build/
+
+# Older layouts and stray arduino-cli config, in case anyone still has them
+/.arduino/
+/.arduino-cli.yaml
+
+.DS_Store

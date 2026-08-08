@@ -1,0 +1,193 @@
+diff --git a/bin/pic32-genfiles b/bin/pic32-genfiles
+index 6879208..a992bbf 100755
+--- a/bin/pic32-genfiles
++++ b/bin/pic32-genfiles
+@@ -210,7 +210,13 @@ class Chip {
+                 foreach ($regdata['bits'] as $layer) {
+                     $header[] = "    struct {";
+                     $bits = $this->collapse($layer);
+-                    foreach ($bits as $bit) {
++                    /* collapse() walks 31->0 so that 'pos' ends up at each
++                       field's least-significant bit, which is what the POSITION
++                       and MASK macros need. But GCC allocates bitfields
++                       LSB-first on a little-endian target, so the struct must be
++                       emitted in the opposite order or every field lands at
++                       31-pos. Reverse here only; the macros above are unaffected. */
++                    foreach (array_reverse($bits) as $bit) {
+                         if ($bit['name'] == 'UNUSED') {
+                             $header[] = "        unsigned :" . $bit['size'] . ";";
+                         } else {
+diff --git a/peripherals/common/timerb b/peripherals/common/timerb
+index 8520059..35c601a 100644
+--- a/peripherals/common/timerb
++++ b/peripherals/common/timerb
+@@ -13,7 +13,7 @@ BIT 2       UNUSED
+ BIT 1       TCS
+ BIT 0       UNUSED
+ 
+-REG ${reg ${BASE} 0x10 +} TMR${INDEX} CLR SET INV
++REG ${rpn ${BASE} 0x10 +} TMR${INDEX} CLR SET INV
+ BIT 31-16   UNUSED
+ BIT 15-0    TMR${INDEX}
+ 
+diff --git a/peripherals/mx/adc b/peripherals/mx/adc
+index 88b425b..92eb6a3 100644
+--- a/peripherals/mx/adc
++++ b/peripherals/mx/adc
+@@ -13,7 +13,7 @@ BIT 2       ASAM
+ BIT 1       SAMP
+ BIT 0       DONE
+ 
+-REG ${rpn ${BASE} 10 +} AD1CON2 CLR SET INV
++REG ${rpn ${BASE} 0x10 +} AD1CON2 CLR SET INV
+ BIT 31-16   UNUSED
+ BIT 15-13   VCFG
+ BIT 12      OFFCAL
+@@ -26,14 +26,14 @@ BIT 5-2     SMPI
+ BIT 1       BUFM
+ BIT 0       ALTS
+ 
+-REG ${rpn ${BASE} 20 +} AD1CON3 CLR SET INV
++REG ${rpn ${BASE} 0x20 +} AD1CON3 CLR SET INV
+ BIT 31-16   UNUSED
+ BIT 15      ADRC
+ BIT 14-13   UNUSED
+ BIT 12-8    SAMC
+ BIT 7-0     ADCS
+ 
+-REG ${rpn ${BASE} 40 +} AD1CHS CLR SET INV
++REG ${rpn ${BASE} 0x40 +} AD1CHS CLR SET INV
+ BIT 31      CH0NB
+ BIT 30-28   UNUSED
+ BIT 27-24   CH0SB
+@@ -42,7 +42,7 @@ BIT 22-20   UNUSED
+ BIT 19-16   CH0SA
+ BIT 15-0    UNUSED
+ 
+-REG ${rpn ${BASE} 50 +} AD1CSSL CLR SET INV
++REG ${rpn ${BASE} 0x50 +} AD1CSSL CLR SET INV
+ BIT 31-16   UNUSED
+ BIT 15      CSSL15
+ BIT 14      CSSL14
+diff --git a/pinmap/mx/mx1xx2xx b/pinmap/mx/mx1xx2xx
+index 9839fe6..811bcce 100644
+--- a/pinmap/mx/mx1xx2xx
++++ b/pinmap/mx/mx1xx2xx
+@@ -5,61 +5,61 @@ PERIPHERAL BF80FA00 PPS
+ 
+ ${if ${USB} == 1 ? DEFINE __PIC32MX2XX__ 1 : DEFINE __PIC32MX1XX__ 1}
+ 
+-INCLUDE peripherals/mx/pps_func OFFSET=0004 FUNCTION=INT1R
+-INCLUDE peripherals/mx/pps_func OFFSET=0008 FUNCTION=INT2R
+-INCLUDE peripherals/mx/pps_func OFFSET=000C FUNCTION=INT3R
+-INCLUDE peripherals/mx/pps_func OFFSET=0010 FUNCTION=INT4R
+-INCLUDE peripherals/mx/pps_func OFFSET=0018 FUNCTION=T2CKR
+-INCLUDE peripherals/mx/pps_func OFFSET=001C FUNCTION=T3CKR
+-INCLUDE peripherals/mx/pps_func OFFSET=0020 FUNCTION=T4CKR
+-INCLUDE peripherals/mx/pps_func OFFSET=0024 FUNCTION=T5CKR
+-INCLUDE peripherals/mx/pps_func OFFSET=0028 FUNCTION=IC1R
+-INCLUDE peripherals/mx/pps_func OFFSET=002C FUNCTION=IC2R
+-INCLUDE peripherals/mx/pps_func OFFSET=0030 FUNCTION=IC3R
+-INCLUDE peripherals/mx/pps_func OFFSET=0034 FUNCTION=IC4R
+-INCLUDE peripherals/mx/pps_func OFFSET=0038 FUNCTION=IC5R
+-INCLUDE peripherals/mx/pps_func OFFSET=0048 FUNCTION=OCFAR
+-INCLUDE peripherals/mx/pps_func OFFSET=004C FUNCTION=OCFBR
+-INCLUDE peripherals/mx/pps_func OFFSET=0050 FUNCTION=U1RXR
+-INCLUDE peripherals/mx/pps_func OFFSET=0054 FUNCTION=U1CTSR
+-INCLUDE peripherals/mx/pps_func OFFSET=0058 FUNCTION=U2RXR
+-INCLUDE peripherals/mx/pps_func OFFSET=005C FUNCTION=U2CTSR
+-INCLUDE peripherals/mx/pps_func OFFSET=0084 FUNCTION=SDI1R
+-INCLUDE peripherals/mx/pps_func OFFSET=0088 FUNCTION=SS1R
+-INCLUDE peripherals/mx/pps_func OFFSET=0090 FUNCTION=SDI2R
+-INCLUDE peripherals/mx/pps_func OFFSET=0094 FUNCTION=SS2R
+-INCLUDE peripherals/mx/pps_func OFFSET=00B8 FUNCTION=REFCLKIR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0004 FUNCTION=INT1R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0008 FUNCTION=INT2R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x000C FUNCTION=INT3R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0010 FUNCTION=INT4R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0018 FUNCTION=T2CKR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x001C FUNCTION=T3CKR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0020 FUNCTION=T4CKR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0024 FUNCTION=T5CKR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0028 FUNCTION=IC1R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x002C FUNCTION=IC2R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0030 FUNCTION=IC3R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0034 FUNCTION=IC4R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0038 FUNCTION=IC5R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0048 FUNCTION=OCFAR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x004C FUNCTION=OCFBR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0050 FUNCTION=U1RXR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0054 FUNCTION=U1CTSR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0058 FUNCTION=U2RXR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x005C FUNCTION=U2CTSR
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0084 FUNCTION=SDI1R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0088 FUNCTION=SS1R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0090 FUNCTION=SDI2R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x0094 FUNCTION=SS2R
++INCLUDE peripherals/mx/pps_func PPS_BASE=0xBF80FA00 OFFSET=0x00B8 FUNCTION=REFCLKIR
+ 
+-INCLUDE peripherals/mx/pps_pin OFFSET=0100 PIN=A0
+-INCLUDE peripherals/mx/pps_pin OFFSET=0104 PIN=A1
+-INCLUDE peripherals/mx/pps_pin OFFSET=0108 PIN=A2
+-INCLUDE peripherals/mx/pps_pin OFFSET=010C PIN=A3
+-INCLUDE peripherals/mx/pps_pin OFFSET=0110 PIN=A4
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0120 PIN=A8}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0124 PIN=A9}
+-INCLUDE peripherals/mx/pps_pin OFFSET=012C PIN=B0
+-INCLUDE peripherals/mx/pps_pin OFFSET=0130 PIN=B1
+-INCLUDE peripherals/mx/pps_pin OFFSET=0134 PIN=B2
+-INCLUDE peripherals/mx/pps_pin OFFSET=0138 PIN=B3
+-INCLUDE peripherals/mx/pps_pin OFFSET=013C PIN=B4
+-INCLUDE peripherals/mx/pps_pin OFFSET=0140 PIN=B5
+-${if ${USB} != 1 ? INCLUDE peripherals/mx/pps_pin OFFSET=0144 PIN=B6}
+-INCLUDE peripherals/mx/pps_pin OFFSET=0148 PIN=B7
+-INCLUDE peripherals/mx/pps_pin OFFSET=014C PIN=B8
+-INCLUDE peripherals/mx/pps_pin OFFSET=0150 PIN=B9
+-INCLUDE peripherals/mx/pps_pin OFFSET=0154 PIN=B10
+-INCLUDE peripherals/mx/pps_pin OFFSET=0158 PIN=B11
+-INCLUDE peripherals/mx/pps_pin OFFSET=0160 PIN=B13
+-INCLUDE peripherals/mx/pps_pin OFFSET=0164 PIN=B14
+-INCLUDE peripherals/mx/pps_pin OFFSET=0168 PIN=B15
+-${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin OFFSET=016C PIN=C0}
+-${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin OFFSET=0170 PIN=C1}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0174 PIN=C2}
+-${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin OFFSET=0178 PIN=C3}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=017C PIN=C4}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0180 PIN=C5}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0184 PIN=C6}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=0188 PIN=C7}
+-${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin OFFSET=018C PIN=C8}
+-${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin OFFSET=0190 PIN=C9}
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0100 PIN=A0
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0104 PIN=A1
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0108 PIN=A2
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x010C PIN=A3
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0110 PIN=A4
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0120 PIN=A8}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0124 PIN=A9}
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x012C PIN=B0
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0130 PIN=B1
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0134 PIN=B2
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0138 PIN=B3
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x013C PIN=B4
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0140 PIN=B5
++${if ${USB} != 1 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0144 PIN=B6}
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0148 PIN=B7
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x014C PIN=B8
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0150 PIN=B9
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0154 PIN=B10
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0158 PIN=B11
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0160 PIN=B13
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0164 PIN=B14
++INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0168 PIN=B15
++${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x016C PIN=C0}
++${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0170 PIN=C1}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0174 PIN=C2}
++${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0178 PIN=C3}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x017C PIN=C4}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0180 PIN=C5}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0184 PIN=C6}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0188 PIN=C7}
++${if ${PINS} == 44 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x018C PIN=C8}
++${if ${PINS} >= 36 ? INCLUDE peripherals/mx/pps_pin PPS_BASE=0xBF80FA00 OFFSET=0x0190 PIN=C9}
+ 
