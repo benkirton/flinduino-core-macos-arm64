@@ -1,0 +1,133 @@
+# Flinduino on a native arm64 mipsel-pic32-elf GCC 10.2 toolchain.
+#
+# Ported from the Flinders/chipKIT platform.txt, which targets Microchip's
+# patched GCC 4.8.3. Microchip-only flags have no mainline equivalent and are
+# dropped or replaced:
+#
+#   -mprocessor=<chip>    -> -march=mips32r2 -msoft-float -D__<CHIP>__ plus the
+#                            generated proc header and lib from pic32-genfiles
+#   -mno-smart-io         -> dropped (Microchip printf size reduction)
+#   -mdebugger            -> dropped
+#   -mno-peripheral-libs  -> dropped (the core does not use plib)
+#   -fno-short-double     -> dropped; mainline MIPS GCC already has 64-bit double
+#   -Wl,--save-gld        -> dropped; the linker script is static, not generated
+#   pic32-bin2hex -a      -> objcopy -O ihex with a kseg0->physical address shift
+#
+# Two flags are load-bearing and must not be removed:
+#   -msoft-float   PIC32MX has no FPU and the toolchain defaults to hard-float.
+#                  Mixing them is only a link warning, not an error.
+#   -DCPP_INIT     makes cpp-startup.S call _init, which runs C++ global
+#                  constructors. Without it nothing global is ever constructed.
+#
+# All machine-specific paths come from platform.local.txt, written by
+# 'flinduino doctor'. Nothing below should need editing.
+
+name=Flinduino
+version=2.2.0-e1
+
+# --------------------------------------------------------------- toolchain
+# Installed by Board Manager as tool dependencies. For a manual/source install,
+# platform.local.txt overrides these two - see README.md.
+pic32.root={runtime.tools.mipsel-pic32-elf.path}
+pic32.pic32prog={runtime.tools.pic32prog-arm64.path}
+pic32.sysroot={pic32.root}/mipsel-pic32-elf
+pic32.libgcc={pic32.root}/lib/gcc/mipsel-pic32-elf/10.2.0/soft-float
+pic32.arch=-march=mips32r2 -EL -msoft-float
+pic32.chip=-D__{build.mcu}__ -D__PIC32MX__
+
+compiler.path={pic32.root}/bin/
+compiler.c.cmd=mipsel-pic32-elf-gcc
+compiler.cpp.cmd=mipsel-pic32-elf-g++
+compiler.c.elf.cmd=mipsel-pic32-elf-g++
+compiler.ar.cmd=mipsel-pic32-elf-ar
+compiler.ar.flags=rcs
+compiler.objcopy.cmd=mipsel-pic32-elf-objcopy
+compiler.size.cmd=mipsel-pic32-elf-size
+compiler.elf2hex.cmd=mipsel-pic32-elf-objcopy
+
+# --------------------------------------------------------------- warnings
+compiler.warning_flags=-w
+compiler.warning_flags.none=-w
+compiler.warning_flags.default=
+compiler.warning_flags.more=-Wall
+compiler.warning_flags.all=-Wall -Wextra
+
+# ------------------------------------------------------------------ flags
+# Do not add -I{pic32.sysroot}/include here. The toolchain already knows its own
+# target include directory, and forcing it onto the -I path puts the C headers
+# ahead of where GCC expects, breaking the #include_next chain the C++ headers
+# rely on. The symptom is "'abs' has not been declared in '::'".
+compiler.c.flags=-c -g -O2 {compiler.warning_flags} -std=gnu11 -DARDUINO_ARCH_{build.arch} {pic32.arch} {pic32.chip} -ffunction-sections -fdata-sections -Wcast-align -ftoplevel-reorder -MMD
+compiler.cpp.flags=-c -g -O2 {compiler.warning_flags} -std=gnu++11 -DARDUINO_ARCH_{build.arch} {pic32.arch} {pic32.chip} -ffunction-sections -fdata-sections -Wcast-align -ftoplevel-reorder -fno-exceptions
+compiler.S.flags=-c -g1 -O2 -Wa,--gdwarf-2 {pic32.arch} {pic32.chip}
+
+# cpp-startup.S is assembled by the link recipe, so it needs the chip defines
+# too - the original got them from -mprocessor= on the same line.
+compiler.c.elf.flags={compiler.warning_flags} -Os {pic32.arch} {pic32.chip} -DCPP_INIT -Wl,-Map={build.path}/sketch.map,--gc-sections -nostartfiles
+
+compiler.objcopy.eep.flags=-O ihex -j .eeprom --set-section-flags=.eeprom=alloc,load --no-change-warnings --change-section-lma .eeprom=0
+
+# The ELF is linked at kseg0 virtual addresses; pic32prog wants physical ones.
+# Addresses are sign-extended to 64-bit, so adding 0x80000000 wraps the high
+# word and yields the physical address; subtracting it does not.
+compiler.elf2hex.flags=-O ihex --change-addresses 0x80000000
+
+compiler.define= -DMPIDEVER=16777998 -DMPIDE=150 -DIDE=Arduino
+build.ldscript.path={build.core.path}
+core.header=WProgram.h
+
+build.extra_flags=
+compiler.c.extra_flags=
+compiler.c.elf.extra_flags=
+compiler.S.extra_flags=
+compiler.cpp.extra_flags=
+compiler.ar.extra_flags=
+compiler.objcopy.eep.extra_flags=
+compiler.elf2hex.extra_flags=
+
+# ---------------------------------------------------------------- recipes
+recipe.c.o.pattern="{compiler.path}{compiler.c.cmd}" {compiler.c.flags} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -D{build.board} {compiler.define} {compiler.c.extra_flags} {build.extra_flags} -I"{build.path}/sketch" {includes} "{source_file}" -o "{object_file}"
+
+recipe.cpp.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -D{build.board} {compiler.define} "{compiler.cpp.extra_flags}" {build.extra_flags} -I"{build.path}/sketch" {includes} "{source_file}" -o "{object_file}"
+
+recipe.S.o.pattern="{compiler.path}{compiler.cpp.cmd}" {compiler.S.flags} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -D{build.board} {compiler.define} "{compiler.cpp.extra_flags}" {build.extra_flags} -I"{build.path}/sketch" {includes} "{source_file}" -o "{object_file}"
+
+recipe.ar.pattern="{compiler.path}{compiler.ar.cmd}" {compiler.ar.flags} {compiler.ar.extra_flags} "{archive_file_path}" "{object_file}"
+
+# -nostartfiles drops crti.o and crtn.o, so _init would not exist and C++
+# constructors would never run. crtbegin.o and crtend.o are still linked
+# implicitly - adding those too gives a duplicate __TMC_END__.
+#
+# Three linker scripts, mirroring chipKIT: per-chip memory map, then the shared
+# section layout that places .vector_N/.image_ptr_table/.dinit, then the
+# symbols Majenko's script leaves undefined.
+#
+# -Map and -L are deliberately unquoted: quoting them passes the quote
+# characters through to ld as part of the filename.
+recipe.c.combine.pattern="{compiler.path}{compiler.c.elf.cmd}" {compiler.c.elf.flags} {compiler.c.elf.extra_flags} -o "{build.path}/{build.project_name}.elf" "{build.core.path}/cpp-startup.S" "{pic32.libgcc}/crti.o" {object_files} "{build.path}/{archive_file}" "{pic32.libgcc}/crtn.o" -L{build.path} -L{pic32.sysroot}/lib/proc -Wl,--start-group -lm -lc -lgcc -Wl,--end-group -T "{pic32.sysroot}/lib/proc/{build.ldchip}-app.ld" -T "{pic32.sysroot}/lib/proc/mips-chipKIT-application-COMMON.ld" -T "{build.core.path}/flinduino-compat.ld"
+
+recipe.objcopy.eep.pattern="{compiler.path}{compiler.objcopy.cmd}" {compiler.objcopy.eep.flags} {compiler.objcopy.eep.extra_flags} "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.eep"
+recipe.objcopy.hex.pattern="{compiler.path}{compiler.elf2hex.cmd}" {compiler.elf2hex.flags} {compiler.elf2hex.extra_flags} "{build.path}/{build.project_name}.elf" "{build.path}/{build.project_name}.hex"
+recipe.output.tmp_file={build.project_name}.hex
+recipe.output.save_file={build.project_name}.hex
+
+recipe.size.pattern="{compiler.path}{compiler.size.cmd}" -A "{build.path}/{build.project_name}.elf"
+recipe.size.regex=^(?:\.reset|\.startup|\.init|\.fini|\.ctors|\.dtors|\.header_info|\.dinit|\.text\S*|\.rodata\S*|\.romdata\S*|\.data)\s+([0-9]+).*
+recipe.size.regex.data=^(?:\.dbg_data|\.ram_exchange_data|\.sdata|\.sbss|\.data\S*|\.stack|\.bss\S*|\.eh_frame|\.jcr|\.libc\S*|\.heap)\s+([0-9]+).*
+
+preproc.includes.flags=-w -x c++ -M -MG -MP
+recipe.preproc.includes="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {preproc.includes.flags} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -D{build.board} -DARDUINO_ARCH_{build.arch} {compiler.define} {compiler.cpp.extra_flags} {build.extra_flags} -I"{build.path}/sketch" {includes} "{source_file}"
+
+preproc.macros.flags=-w -x c++ -E -CC
+recipe.preproc.macros="{compiler.path}{compiler.cpp.cmd}" {compiler.cpp.flags} {preproc.macros.flags} -DF_CPU={build.f_cpu} -DARDUINO={runtime.ide.version} -D{build.board} -DARDUINO_ARCH_{build.arch} {compiler.define} {compiler.cpp.extra_flags} {build.extra_flags} -I"{build.path}/sketch" {includes} "{source_file}" -o "{preprocessed_file_path}"
+
+# ------------------------------------------------------------------ upload
+# pic32prog is a host binary and needs the serial port, so it is never
+# containerised. -R retries opening the port about twice a second, which covers
+# the board re-enumerating after a 1200-baud touch.
+upload.tool=pic32prog
+tools.pic32prog.cmd=pic32prog
+tools.pic32prog.path={pic32.pic32prog}
+tools.pic32prog.upload.params.verbose=
+tools.pic32prog.upload.params.quiet=
+tools.pic32prog.upload.pattern="{path}/{cmd}" {upload.verbose} -R 60 -d "{serial.port}" -b {upload.speed} "{build.path}/{build.project_name}.hex"

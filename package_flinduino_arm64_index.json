@@ -1,0 +1,60 @@
+{
+  "packages": [
+    {
+      "name": "flinduino-arm64",
+      "maintainer": "Flinduino Apple Silicon port",
+      "websiteURL": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0",
+      "email": "",
+      "help": { "online": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0" },
+      "platforms": [
+        {
+          "name": "Flinduino",
+          "architecture": "pic32",
+          "version": "1.0.0",
+          "category": "Contributed",
+          "help": { "online": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0" },
+          "url": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0/flinduino-pic32-1.0.0.tar.gz",
+          "archiveFileName": "flinduino-pic32-1.0.0.tar.gz",
+          "checksum": "SHA-256:6a98827e31a3a274e48bdd8601cd0dbb8f607e895a681e395feb9e07bf9d7835",
+          "size": "7028016",
+          "boards": [
+            { "name": "Flinduino" },
+            { "name": "Flinduino Baseboard" }
+          ],
+          "toolsDependencies": [
+            { "packager": "flinduino-arm64", "name": "mipsel-pic32-elf", "version": "10.2.0" },
+            { "packager": "flinduino-arm64", "name": "pic32prog-arm64", "version": "2.1" }
+          ]
+        }
+      ],
+      "tools": [
+        {
+          "name": "mipsel-pic32-elf",
+          "version": "10.2.0",
+          "systems": [
+            {
+              "host": "arm64-apple-darwin",
+              "url": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0/mipsel-pic32-elf-10.2.0-arm64-apple-darwin.tar.gz",
+              "archiveFileName": "mipsel-pic32-elf-10.2.0-arm64-apple-darwin.tar.gz",
+              "checksum": "SHA-256:69ed71525efa9038b047ee7c5f6a26f2596ea6a3e73a5d46a237c7161dbe77d0",
+              "size": "85696651"
+            }
+          ]
+        },
+        {
+          "name": "pic32prog-arm64",
+          "version": "2.1",
+          "systems": [
+            {
+              "host": "arm64-apple-darwin",
+              "url": "https://github.com/benkirton/flinduino-core-macos-arm64/releases/download/v1.0.0/pic32prog-2.1-arm64-apple-darwin.tar.gz",
+              "archiveFileName": "pic32prog-2.1-arm64-apple-darwin.tar.gz",
+              "checksum": "SHA-256:f74c78ea913e4ba77fa5512bf2705b04cbc1087487a7f8eb1c4ad61bdf196438",
+              "size": "118425"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

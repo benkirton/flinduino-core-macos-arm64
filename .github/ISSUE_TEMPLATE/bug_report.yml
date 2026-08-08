@@ -1,0 +1,53 @@
+name: Something does not work
+description: Compile fails, upload fails, or the board does not behave
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most problems are diagnosed by two things: the `doctor` output, and
+        whether the LED blinks. Please include both.
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `bin/flinduino doctor`
+      description: |
+        If you installed via Boards Manager instead, paste the output of
+        `arduino-cli core list`, `arduino-cli version` and `sw_vers`.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: board
+    attributes:
+      label: Which board did you select?
+      options:
+        - Flinduino
+        - Flinduino Baseboard
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: led
+    attributes:
+      label: Does the LED blink?
+      description: |
+        This separates "the core never started" from "the core runs and one
+        subsystem is broken", which is most of the diagnosis.
+      options:
+        - "Yes"
+        - "No"
+        - Not applicable - my sketch does not blink it
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got. Paste any error output.
+    validations:
+      required: true

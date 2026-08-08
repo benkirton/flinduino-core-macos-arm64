@@ -1,0 +1,117 @@
+menu.USB=USB Devices
+menu.I2C=Port Select for 'Wire' lib
+
+#----------------------------------------------------------------
+# Flinders Flinduino
+#----------------------------------------------------------------
+
+Flinduino.name=Flinduino
+Flinduino.group=Flinders
+
+# new items
+Flinduino.platform=pic32
+Flinduino.build.board=_BOARD_FLINDUINO
+
+Flinduino.usb.enabled=true
+Flinduino.usb.default=a_cdcacm
+
+Flinduino.ccflags=-Map="map.map"
+Flinduino.ldscript=chipKIT-application-32MX250F128.ld
+# Use this -G1024 option ONLY for boards with 64K RAM or less
+Flinduino.compiler.c.extra_flags=-G1024
+Flinduino.compiler.cpp.extra_flags=-G1024
+# end of new items
+
+Flinduino.upload.protocol=stk500v2
+# 128KB - 4K for EEPROM - 4K for bootloader
+Flinduino.upload.maximum_size=122880
+Flinduino.upload.maximum_data_size=32768
+Flinduino.upload.speed=115200
+Flinduino.upload.tool=pic32prog
+
+Flinduino.build.mcu=32MX250F128D
+Flinduino.build.f_cpu=40000000L
+Flinduino.build.core=pic32
+Flinduino.build.variant=Flinduino
+
+Flinduino.vid.0=0x04D8
+Flinduino.pid.0=0xE9E1
+
+Flinduino.menu.I2C.a_I2C=I2C_1 - (23/24)
+Flinduino.menu.I2C.a_I2C.I2C.extra_flags=-DWIRE_USES_I2C1 
+Flinduino.menu.I2C.b_I2C=I2C_2 - (A4/A5)
+Flinduino.menu.I2C.b_I2C.I2C.extra_flags=-DWIRE_USES_I2C2 
+
+Flinduino.menu.USB.a_cdcacm=Serial
+Flinduino.menu.USB.a_cdcacm.build.extra_flags={I2C.extra_flags} -D__USB_ENABLED__ -D__USB_CDCACM__ -D__SERIAL_IS_USB__
+Flinduino.menu.USB.b_cdcacm_km=Serial, Keyboard & Mouse
+Flinduino.menu.USB.b_cdcacm_km.build.extra_flags={I2C.extra_flags} -D__USB_ENABLED__ -D__USB_CDCACM_KM__ -D__SERIAL_IS_USB__
+Flinduino.menu.USB.z_custom=Custom / Disabled
+Flinduino.menu.USB.z_custom.build.extra_flags={I2C.extra_flags}
+
+#----------------------------------------------------------------
+# Flinders Flinduino_Baseboard
+#----------------------------------------------------------------
+
+FlinduinoBB.name=Flinduino Baseboard
+FlinduinoBB.group=Flinders
+
+# new items
+FlinduinoBB.platform=pic32
+FlinduinoBB.build.board=_BOARD_FLINDUINO_BASEBOARD
+
+FlinduinoBB.usb.enabled=true
+FlinduinoBB.usb.default=a_cdcacm
+
+FlinduinoBB.ccflags=-Map="map.map"
+FlinduinoBB.ldscript=chipKIT-application-32MX250F128.ld
+# Use this -G1024 option ONLY for boards with 64K RAM or less
+FlinduinoBB.compiler.c.extra_flags=-G1024
+FlinduinoBB.compiler.cpp.extra_flags=-G1024
+# end of new items
+
+FlinduinoBB.upload.protocol=stk500v2
+# 128KB - 4K for EEPROM - 4K for bootloader
+FlinduinoBB.upload.maximum_size=122880
+FlinduinoBB.upload.maximum_data_size=32768
+FlinduinoBB.upload.speed=115200
+FlinduinoBB.upload.tool=pic32prog
+
+FlinduinoBB.build.mcu=32MX250F128D
+FlinduinoBB.build.f_cpu=40000000L
+FlinduinoBB.build.core=pic32
+FlinduinoBB.build.variant=Flinduino_Baseboard
+
+FlinduinoBB.vid.0=0x04D8
+FlinduinoBB.pid.0=0xE9E1
+
+FlinduinoBB.menu.I2C.a_I2C=I2C_1 - (23/24)
+FlinduinoBB.menu.I2C.a_I2C.I2C.extra_flags=-DWIRE_USES_I2C1 
+FlinduinoBB.menu.I2C.b_I2C=I2C_2 - (A4/A5)
+FlinduinoBB.menu.I2C.b_I2C.I2C.extra_flags=-DWIRE_USES_I2C2 
+
+FlinduinoBB.menu.USB.a_cdcacm=Serial
+FlinduinoBB.menu.USB.a_cdcacm.build.extra_flags={I2C.extra_flags} -D__USB_ENABLED__ -D__USB_CDCACM__ -D__SERIAL_IS_USB__
+FlinduinoBB.menu.USB.b_cdcacm_km=Serial, Keyboard & Mouse
+FlinduinoBB.menu.USB.b_cdcacm_km.build.extra_flags={I2C.extra_flags} -D__USB_ENABLED__ -D__USB_CDCACM_KM__ -D__SERIAL_IS_USB__
+FlinduinoBB.menu.USB.z_custom=Custom / Disabled
+FlinduinoBB.menu.USB.z_custom.build.extra_flags={I2C.extra_flags}
+## Added for the native arm64 port.
+## pic32-genfiles names its linker scripts in lowercase; build.mcu is uppercase.
+Flinduino.build.ldchip=32mx250f128d
+FlinduinoBB.build.ldchip=32mx250f128d
+
+## Buttonless upload
+Flinduino.upload.use_1200bps_touch=true
+Flinduino.upload.wait_for_upload_port=true
+FlinduinoBB.upload.use_1200bps_touch=true
+FlinduinoBB.upload.wait_for_upload_port=true
+
+## -G1024 places objects <=1024 bytes in gp-relative small data. Linker-script
+## absolute symbols (_GEN_EXCPT_ADDR, _image_header_info) are not reachable that
+## way under mainline GCC, giving "relocation truncated to fit R_MIPS_GPREL16".
+## -G0 disables small-data addressing. Costs a little code size and speed.
+Flinduino.compiler.c.extra_flags=-G0
+Flinduino.compiler.cpp.extra_flags=-G0
+FlinduinoBB.compiler.c.extra_flags=-G0
+FlinduinoBB.compiler.cpp.extra_flags=-G0
